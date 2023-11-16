@@ -1,0 +1,169 @@
+// лаб2а Винни и пчелы
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class Main {
+    public static void main(String[] args) {
+        int numberOfBees = 5; // Кількість груп бджіл
+        int forestSize = 20; // Розмір лісу
+        int searchDuration = 2000; // Тривалість пошуків (у мілісекундах)
+
+        // Створюємо ліс
+        Forest forest = new Forest(forestSize);
+
+        // Створюємо ведмедя
+        Bear winnieThePooh = new Bear(forest);
+
+        // Створюємо групи бджіл для пошуку та повернення
+        List<Bee> searchBees = new ArrayList<>();
+        List<Bee> returnBees = new ArrayList<>();
+        for (int i = 1; i <= numberOfBees; i++) {
+            if (i == 1) {
+                searchBees.add(new Bee("Bee " + i, forest, winnieThePooh, searchDuration, true));
+            } else {
+                returnBees.add(new Bee("Bee " + i, forest, winnieThePooh, searchDuration, false));
+            }
+        }
+
+        // Запускаємо групи бджіл на пошук та повернення
+        for (Bee bee : searchBees) {
+            bee.start();
+            System.out.println("Бджоли летять шукати Пуха ");
+        }
+        for (Bee bee : returnBees) {
+            bee.start();
+        }
+
+        // Очікуємо завершення дій бджіл
+        for (Bee bee : searchBees) {
+            try {
+                bee.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        for (Bee bee : returnBees) {
+            try {
+                bee.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // Показуємо результат пошуку
+        System.out.println("Пошук завершено. Вінні-Пух " + (winnieThePooh.isFound() ? "знайдений" : "не знайдений"));
+    }
+}
+
+class Forest {
+    private ReentrantLock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+    private boolean found;
+
+    public Forest(int size) {
+        this.found = false;
+    }
+
+    public boolean isFound() {
+        lock.lock();
+        try {
+            return found;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void setFound(boolean found) {
+        lock.lock();
+        try {
+            this.found = found;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void waitForOtherBees() throws InterruptedException {
+        lock.lock();
+        try {
+            while (found) {
+                condition.await();
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void signalOtherBees() {
+        lock.lock();
+        try {
+            condition.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+
+class Bear {
+    private Forest forest;
+
+    public Bear(Forest forest) {
+        this.forest = forest;
+    }
+
+    public boolean isFound() {
+        return forest.isFound();
+    }
+
+    public void foundByBee() {
+        forest.setFound(true);
+    }
+}
+
+class Bee extends Thread {
+    private String name;
+    private Forest forest;
+    private Bear bear;
+    private int searchDuration;
+    private boolean searchGroup;
+
+    public Bee(String name, Forest forest, Bear bear, int searchDuration, boolean searchGroup) {
+        this.name = name;
+        this.forest = forest;
+        this.bear = bear;
+        this.searchDuration = searchDuration;
+        this.searchGroup = searchGroup;
+    }
+
+    public void flyHome() {
+        System.out.println(name + " летить додому.");
+    }
+
+    @Override
+    public void run() {
+        try {
+            forest.waitForOtherBees(); // Бджоли очікують одна одну
+            Thread.sleep(searchDuration); // Імітуємо тривалість пошуку
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Перевірка, чи бджола знаходить Вінні-Пуха
+        if (searchGroup) {
+            if (!bear.isFound()) {
+                bear.foundByBee();
+                System.out.println(name + " знайшла Вінні-Пуха та карає його.");
+                flyHome(); // Летіти додому, якщо Вінні-Пуха знайдено
+            } else {
+                System.out.println(name + " завершила пошук. Вінні-Пух вже знайдений.");
+                flyHome(); // Летіти додому, якщо Вінні-Пуха не знайдено
+            }
+        } else {
+            flyHome(); // Летіти додому для групи, яка не знаходила Вінні-Пуха
+        }
+
+        forest.signalOtherBees(); // Бджоли сигналізують іншим
+    }
+}
