@@ -1,0 +1,46 @@
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"sync"
+)
+
+func main() {
+	energyLevels := []int{50, 60, 70, 80, 90, 100, 110, 120, 130, 140} // Приклад енергій ченців
+
+	var winner int
+	var wg sync.WaitGroup
+	mutex := &sync.Mutex{}
+
+	for len(energyLevels) > 1 {
+		fmt.Println("Пари:", energyLevels)
+		wg.Add(len(energyLevels) / 2)
+
+		for i := 0; i < len(energyLevels); i += 2 {
+			go func(i int) {
+				defer wg.Done()
+				compareAndRemove(&energyLevels, i, i+1, mutex)
+			}(i)
+		}
+
+		wg.Wait()
+	}
+
+	winner = energyLevels[0]
+
+	fmt.Printf("Переможець: Ченець з енергією %d\n", winner)
+}
+
+func compareAndRemove(energyLevels *[]int, i, j int, mutex *sync.Mutex) {
+	// Визначення переможця між ченцями i та j
+	winnerIndex := i
+	if rand.Intn(2) == 1 {
+		winnerIndex = j
+	}
+
+	mutex.Lock()
+	// Видалення переможця зі списку
+	*energyLevels = append((*energyLevels)[:winnerIndex], (*energyLevels)[winnerIndex+1:]...)
+	mutex.Unlock()
+}
