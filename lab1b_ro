@@ -1,0 +1,129 @@
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class Main {
+    public static int semaphore = 0; // Глобальна змінна для семафора
+    public static JTextArea outputTextArea; // Поле для виводу даних
+
+    public static void main(String[] args) {
+        SwingAnimator animator = new SwingAnimator();
+
+        JFrame frame = new JFrame("Потоки і семафор");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new FlowLayout());
+
+        // Створюємо JTextArea для виведення даних
+        outputTextArea = new JTextArea(10, 30);
+        outputTextArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(outputTextArea);
+
+        // Додаємо JTextArea до вікна
+        frame.add(scrollPane);
+
+        // Створюємо кнопки для керування потоками
+        JButton startThread1Button = new JButton("ПУСК 1");
+        JButton startThread2Button = new JButton("ПУСК 2");
+        JButton stopThread1Button = new JButton("СТОП 1");
+        JButton stopThread2Button = new JButton("СТОП 2");
+
+        // Додаємо кнопки до вікна
+        frame.add(startThread1Button);
+        frame.add(startThread2Button);
+        frame.add(stopThread1Button);
+        frame.add(stopThread2Button);
+
+        // Обробники подій для кнопок
+        startThread1Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (semaphore == 0) {
+                    semaphore = 1;
+                    Thread thread1 = new Thread(new MyThread(animator, "Thread 1", 10));
+                    thread1.setPriority(Thread.MIN_PRIORITY);
+                    thread1.start();
+                } else {
+                    outputTextArea.append("Зайнято потоком 2\n");
+                }
+            }
+        });
+
+        startThread2Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (semaphore == 0) {
+                    semaphore = 1;
+                    Thread thread2 = new Thread(new MyThread(animator, "Thread 2", 90));
+                    thread2.setPriority(Thread.MAX_PRIORITY);
+                    thread2.start();
+                } else {
+                    outputTextArea.append("Зайнято потоком 1\n");
+                }
+            }
+        });
+
+        stopThread1Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                semaphore = 0;
+            }
+        });
+
+        stopThread2Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                semaphore = 0;
+            }
+        });
+
+        // Відображення вікна
+        frame.pack();
+        frame.setVisible(true);
+    }
+}
+
+// Клас для анімації "бігунка" на графічному вікні
+class SwingAnimator {
+    private int position = 0;
+
+    public synchronized int getPosition() {
+        return position;
+    }
+
+    public synchronized void setPosition(int position) {
+        this.position = position;
+    }
+}
+
+// Клас, що представляє потік (нитку) роботи
+class MyThread implements Runnable {
+    private SwingAnimator animator;
+    private String name;
+    private int targetPosition;
+
+    public MyThread(SwingAnimator animator, String name, int targetPosition) {
+        this.animator = animator;
+        this.name = name;
+        this.targetPosition = targetPosition;
+    }
+
+    @Override
+    public void run() {
+        Main.outputTextArea.append(name + " розпочав роботу.\n");
+        int currentPosition;
+        while (true) {
+            synchronized (animator) {
+                currentPosition = animator.getPosition();
+                if (currentPosition == targetPosition) {
+                    Main.outputTextArea.append(name + " досяг цільової позиції: " + currentPosition + "\n");
+                    break;
+                }
+                currentPosition++;
+                animator.setPosition(currentPosition);
+            }
+        }
+        Main.outputTextArea.append(name + " завершив роботу.\n");
+    }
+}
