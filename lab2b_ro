@@ -1,0 +1,149 @@
+//ро лаб 2 б
+
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class Main {
+    public static void main(String[] args) {
+        Queue<String> warehouse = new LinkedList<>();
+        int maxWarehouseSize = 10;
+        Object lock = new Object();
+        boolean isRunning = true; // Флаг, що вказує на роботу програми
+
+        synchronized (lock) {
+            int initialItemCount = 10; // Початкова кількість товару
+            for (int i = 0; i < initialItemCount; i++) {
+                warehouse.add("Майно");
+            }
+            System.out.println("Початкова кількість товару на складі: " + warehouse.size());
+        }
+
+        Thread ivanov = new Thread(new Producer(warehouse, lock, maxWarehouseSize, isRunning));
+        Thread petrov = new Thread(new Consumer(warehouse, lock, isRunning));
+        Thread nechiporchuk = new Thread(new ValueCalculator(warehouse, lock, isRunning));
+
+        ivanov.start();
+        petrov.start();
+        nechiporchuk.start();
+    }
+
+    static class Producer implements Runnable {
+        private final Queue<String> warehouse;
+        private final Object lock;
+        private final int maxWarehouseSize;
+        private final boolean isRunning;
+
+        public Producer(Queue<String> warehouse, Object lock, int maxWarehouseSize, boolean isRunning) {
+            this.warehouse = warehouse;
+            this.lock = lock;
+            this.maxWarehouseSize = maxWarehouseSize;
+            this.isRunning = isRunning;
+        }
+
+        @Override
+        public void run() {
+            while (isRunning) {
+                synchronized (lock) {
+                    while (warehouse.size() >= maxWarehouseSize) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    warehouse.add("Майно");
+                    System.out.println("Іванов вивів майно на склад. Розмір складу: " + warehouse.size());
+                    warehouse.poll(); // Видалення товару зі складу
+                    lock.notifyAll();
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println("Іванов завершив роботу.");
+        }
+    }
+
+    static class Consumer implements Runnable {
+        private final Queue<String> warehouse;
+        private final Object lock;
+        private final boolean isRunning;
+
+        public Consumer(Queue<String> warehouse, Object lock, boolean isRunning) {
+            this.warehouse = warehouse;
+            this.lock = lock;
+            this.isRunning = isRunning;
+        }
+
+        @Override
+        public void run() {
+            while (isRunning) {
+                synchronized (lock) {
+                    while (warehouse.isEmpty()) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    String item = warehouse.poll();
+                    System.out.println("Петров завантажив майно в вантажівку. Розмір складу: " + warehouse.size());
+                    lock.notifyAll();
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println("Петров завершив роботу.");
+        }
+    }
+
+    static class ValueCalculator implements Runnable {
+        private final Queue<String> warehouse;
+        private final Object lock;
+        private final boolean isRunning;
+
+        public ValueCalculator(Queue<String> warehouse, Object lock, boolean isRunning) {
+            this.warehouse = warehouse;
+            this.lock = lock;
+            this.isRunning = isRunning;
+        }
+
+        @Override
+        public void run() {
+            while (isRunning) {
+                synchronized (lock) {
+                    while (warehouse.isEmpty()) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    int value = warehouse.size() * 100; // Припустимо, що одиниця майна коштує 100
+                    System.out.println("Нечипорчук підрахував вартість майна: " + value + " грн.");
+                    lock.notifyAll();
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println("Нечипорчук завершив роботу.");
+        }
+    }
+}
