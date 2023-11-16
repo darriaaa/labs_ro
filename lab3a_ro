@@ -1,0 +1,86 @@
+//лаб3а ро
+
+import java.util.concurrent.Semaphore;
+
+class HoneyPot {
+    private static final int N = 5; // Мємність горщику
+    private int honeyCount = 0; // Поточна кількість ковтків в горщику
+    private Semaphore beeSemaphore = new Semaphore(0);
+    private Semaphore bearSemaphore = new Semaphore(0);
+    private Semaphore mutex = new Semaphore(1);
+
+    public void addHoney() throws InterruptedException {
+        mutex.acquire();
+        honeyCount++;
+        System.out.println(Thread.currentThread().getName() + " Bee added honey. Total honey: " + honeyCount);
+        if (honeyCount == N) {
+            bearSemaphore.release(); // Будимо ведмедя, якщо горщик наповнений
+        }
+        mutex.release();
+    }
+
+    public void eatHoney() throws InterruptedException {
+        bearSemaphore.acquire(); // Чекаємо, поки горщик наповниться
+        System.out.println(Thread.currentThread().getName() + " Bear is eating honey.");
+        honeyCount = 0;
+        System.out.println(Thread.currentThread().getName() + " Bear finished eating. Going back to sleep.");
+        beeSemaphore.release(); // Будимо одну з бджіл
+    }
+
+    public void wakeUpBear() throws InterruptedException {
+        beeSemaphore.acquire(); // Бджіла чекає, поки її будять, щоб вони могли додати ще меду
+    }
+}
+
+class Bee implements Runnable {
+    private HoneyPot honeyPot;
+
+    public Bee(HoneyPot honeyPot) {
+        this.honeyPot = honeyPot;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while (true) {
+                honeyPot.addHoney();
+                Thread.sleep(1000); // бджіла збирає мед
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class Bear implements Runnable {
+    private HoneyPot honeyPot;
+
+    public Bear(HoneyPot honeyPot) {
+        this.honeyPot = honeyPot;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while (true) {
+                honeyPot.eatHoney();
+                honeyPot.wakeUpBear(); // Будимо одну з бджіл, щоб вони могли додати меду
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+public class HoneyBeeBearSimulation {
+    public static void main(String[] args) {
+        HoneyPot honeyPot = new HoneyPot();
+        Thread bearThread = new Thread(new Bear(honeyPot), "Bear");
+        bearThread.start();
+
+        for (int i = 1; i <= 5; i++) {
+            Thread beeThread = new Thread(new Bee(honeyPot), "Bee-" + i);
+            beeThread.start();
+        }
+    }
+}
