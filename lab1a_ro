@@ -1,0 +1,56 @@
+public class Main {
+    public static void main(String[] args) {
+        SwingAnimator animator = new SwingAnimator();
+
+        Thread thread1 = new Thread(new MyThread(animator, "Thread 1", 10));
+        Thread thread2 = new Thread(new MyThread(animator, "Thread 2", 90));
+
+        thread1.setPriority(Thread.MIN_PRIORITY); // Встановити найнижчий пріоритет
+        thread2.setPriority(Thread.MAX_PRIORITY); // Встановити найвищий пріоритет
+
+        thread1.start();
+        thread2.start();
+    }
+}
+
+class SwingAnimator {
+    private int position = 0;
+
+    public synchronized int getPosition() {
+        return position;
+    }
+
+    public synchronized void setPosition(int position) {
+        this.position = position;
+    }
+}
+
+class MyThread implements Runnable {
+    private SwingAnimator animator;
+    private String name;
+    private int targetPosition;
+
+    public MyThread(SwingAnimator animator, String name, int targetPosition) {
+        this.animator = animator;
+        this.name = name;
+        this.targetPosition = targetPosition;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(name + " розпочав роботу.");
+        int currentPosition;
+        while (true) {
+            synchronized (animator) {
+                currentPosition = animator.getPosition();
+                if (currentPosition == targetPosition) {
+                    System.out.println(name + " досяг цільової позиції: " + currentPosition);
+                    break;
+                }
+                currentPosition++; // Рухати "бігунок" на одну позицію
+                animator.setPosition(currentPosition);
+            }
+        }
+        System.out.println(name + " завершив роботу.");
+    }
+}
