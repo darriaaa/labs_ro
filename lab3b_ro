@@ -1,0 +1,65 @@
+//лаб3 б ро
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+class BarberShop {
+    private static final int CHAIRS = 1;
+
+    private final Semaphore barberChair = new Semaphore(1);
+    private final Semaphore customerSemaphore = new Semaphore(0);
+    private final Semaphore barberSemaphore = new Semaphore(0);
+
+    private void barber() throws InterruptedException {
+        while (true) {
+            System.out.println("Barber is sleeping...");
+            customerSemaphore.acquire(); // Чекаємо на відвідувача
+            System.out.println("Barber wakes up and starts cutting hair...");
+            Thread.sleep(2000); // час на стрижку
+            System.out.println("Barber finishes cutting hair.");
+
+            barberSemaphore.release(); // ujdjhbv відвідувачю, що може вийти
+        }
+    }
+
+    private void customer() throws InterruptedException {
+        if (barberChair.tryAcquire()) {
+            System.out.println("Customer takes a seat in the barber chair.");
+            customerSemaphore.release(); // Будимо перукаря, якщо він спить
+            barberSemaphore.acquire(); // Чекаємо на закінчення стрижки
+            barberChair.release(); // Стілець
+            System.out.println("Customer leaves the barber shop.");
+        } else {
+            System.out.println("Customer enters and sees the barber is busy. Takes a seat in the waiting area.");
+            customerSemaphore.acquire(); // Засинаємо, чекаючи на чергу
+        }
+    }
+
+    public static void main(String[] args) {
+        BarberShop barberShop = new BarberShop();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        executorService.submit(() -> {
+            try {
+                barberShop.barber();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+
+        executorService.submit(() -> {
+            try {
+                while (true) {
+                    barberShop.customer();
+                    TimeUnit.SECONDS.sleep(1); // інтервал приходу нових відвідувачів
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+
+        executorService.shutdown();
+    }
+}
