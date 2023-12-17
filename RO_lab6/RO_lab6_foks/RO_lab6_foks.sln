@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.34301.259
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "RO_lab6_foks", "RO_lab6_foks\RO_lab6_foks.pyproj", "{962A329E-2B16-48EE-B013-1C6B98584AEE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{962A329E-2B16-48EE-B013-1C6B98584AEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{962A329E-2B16-48EE-B013-1C6B98584AEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {02A8BDB0-39EB-4430-9800-15716C0133B4}
+	EndGlobalSection
+EndGlobal
